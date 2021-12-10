@@ -128,8 +128,8 @@ plt.savefig("tulokset/testattujen-lukumaarat.png")
 
 data = kumulatiivinenVuosiData(ikkuna)
 with open('tulokset/frekvenssit.txt', 'w') as f:
-    alku = x[0]
     loppu = x[-1]
+    alku = loppu - ikkuna + 1
     f.write('Vuosina %d - %d syntyneiden koirien (%d kpl) haplotyyppien frekvenssit prosentteina\n'
             % (alku, loppu, int(data[loppu]['kaikki']/2)))
     for haplo in HAPLOT:
