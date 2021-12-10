@@ -114,14 +114,23 @@ for haplo in HAPLOT:
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 ax.legend()
 plt.title("%s edellisenä vuonna syntyneiden kumulatiiviset haplotyypit (%%)" % ikkuna)
-plt.savefig("kuvat/%s-vuoden-ikkuna.png" % ikkuna)
+plt.savefig("tulokset/%s-vuoden-ikkuna.png" % ikkuna)
 
 data = laskeVuosiKoosteet()
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(20,10))
 x = sorted(data.keys())
 y = [int(data[v]['kaikki']/2) for v in x]
 print("### x", x)
 print("### y", y)
 ax.bar(["%s" % v for v in x], y)
 plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(y))
-plt.show()
+plt.savefig("tulokset/testattujen-lukumaarat.png")
+
+data = kumulatiivinenVuosiData(ikkuna)
+with open('tulokset/frekvenssit.txt', 'w') as f:
+    alku = x[0]
+    loppu = x[-1]
+    f.write('Vuosina %d - %d syntyneiden koirien (%d kpl) haplotyyppien frekvenssit prosentteina\n'
+            % (alku, loppu, int(data[loppu]['kaikki']/2)))
+    for haplo in HAPLOT:
+        f.write('Parta%s      %.1f\n' % (haplo, 100 * data[loppu][haplo] / data[loppu]['kaikki']))

@@ -1,0 +1,8 @@
+Vuosina 1993 - 2021 syntyneiden koirien (55 kpl) haplotyyppien frekvenssit prosentteina
+Parta1      35.5
+Parta2      25.5
+Parta3      10.0
+Parta4      10.9
+Parta5      1.8
+Parta6      16.4
+Parta7      0.0
