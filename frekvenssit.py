@@ -117,14 +117,15 @@ plt.title("%s edellisenä vuonna syntyneiden kumulatiiviset haplotyypit (%%)" % 
 plt.savefig("tulokset/%s-vuoden-ikkuna.png" % ikkuna)
 
 data = laskeVuosiKoosteet()
-fig, ax = plt.subplots(figsize=(20,10))
+fig, ax = plt.subplots(figsize=(8,4))
 x = sorted(data.keys())
 y = [int(data[v]['kaikki']/2) for v in x]
 print("### x", x)
 print("### y", y)
-ax.bar(["%s" % v for v in x], y)
+ax.bar([("%s" % v)[2:] for v in x], y)
 plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(y))
 plt.savefig("tulokset/testattujen-lukumaarat.png")
+# plt.show()
 
 data = kumulatiivinenVuosiData(ikkuna)
 with open('tulokset/frekvenssit.txt', 'w') as f:
