@@ -33,24 +33,32 @@ def parsiHaplot(haplot):
     if m:
         return (m.group(1), m.group(2))
 
-vuosiHaplot = {}
-
-def rekisteroiHaplot(vuosi, haplot):
+def lisaaHaplot(vuosi_haplot, vuosi, haplot):
     if haplot:
         h1, h2 = haplot
-        if vuosi not in vuosiHaplot.keys():
-            vuosiHaplot[vuosi] = []
-        vuosiHaplot[vuosi].append(h1)
-        vuosiHaplot[vuosi].append(h2)
+        if vuosi not in vuosi_haplot.keys():
+            vuosi_haplot[vuosi] = []
+        vuosi_haplot[vuosi].append(h1)
+        vuosi_haplot[vuosi].append(h2)
+
+def vuosiHaplot():
+    vuosi_haplot = {}
+    with open('DLA-tyypatut-2021-01-15.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for koira, rekkari, haplot, isa, ema in reader:
+            print(rekkari, vuosi(rekkari), haplot, parsiHaplot(haplot))
+            lisaaHaplot(vuosi_haplot, vuosi(rekkari), parsiHaplot(haplot))
+    return vuosi_haplot
 
 def laskeVuosiKoosteet():
     kooste = {}
-    for vuosi in vuosiHaplot.keys():
+    vuosi_haplot = vuosiHaplot()
+    for vuosi in vuosi_haplot.keys():
         frekvenssit = {}
         kooste[vuosi] = frekvenssit
         frekvenssit['kaikki'] = 0
         for haplo in HAPLOT:
-            n = vuosiHaplot[vuosi].count(haplo)
+            n = vuosi_haplot[vuosi].count(haplo)
             frekvenssit[haplo] = n
             frekvenssit['kaikki'] = frekvenssit['kaikki'] + n
     return kooste
@@ -84,54 +92,28 @@ def kumulatiivinenVuosiData(ikkuna):
             print("#### kum", vuosi, kumulatiivinen[vuosi])
     return kumulatiivinen
 
-with open('DLA-tyypatut-2021-01-15.csv', newline='') as csvfile:
-    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    for koira, rekkari, haplot, isa, ema in reader:
-        print(rekkari, vuosi(rekkari), haplot, parsiHaplot(haplot))
-        rekisteroiHaplot(vuosi(rekkari), parsiHaplot(haplot))
-
-vuosiKoosteet = laskeVuosiKoosteet()
-
-for vuosi in sorted(vuosiHaplot.keys()):
-    print(vuosi, vuosiHaplot[vuosi])
-    print(vuosi, vuosiKoosteet[vuosi])
-
-ikkuna = 10
-
-data = kumulatiivinenVuosiData(ikkuna)
-
-for vuosi in sorted(data.keys()):
-    n = data[vuosi]['kaikki']
-    res = "Suhteelliset osuudet %s-%s (n=%s)" % (vuosi-ikkuna+1, vuosi, n)
+def suhteellistenHaplotyyppienKuvaaja():
+    ikkuna = 10
+    data = kumulatiivinenVuosiData(ikkuna)
+    fig, ax = plt.subplots()
     for haplo in HAPLOT:
-        res = res + (", %s: %0.2f" % (haplo, data[vuosi][haplo]/n))
-    print(res)
+        x, y = vuodetFrekvenssit(data, haplo)
+        ax.plot(x, y, label=haplo, linewidth=5)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.legend()
+    plt.title("%s edellisenä vuonna syntyneiden kumulatiiviset haplotyypit (%%)" % ikkuna)
+    plt.savefig("tulokset/%s-vuoden-ikkuna.png" % ikkuna)
+    plt.show()
 
-fig, ax = plt.subplots()
-for haplo in HAPLOT:
-    x, y = vuodetFrekvenssit(data, haplo)
-    ax.plot(x, y, label=haplo, linewidth=5)
-ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-ax.legend()
-plt.title("%s edellisenä vuonna syntyneiden kumulatiiviset haplotyypit (%%)" % ikkuna)
-plt.savefig("tulokset/%s-vuoden-ikkuna.png" % ikkuna)
+def testattujenLukumaarat():
+    data = laskeVuosiKoosteet()
+    fig, ax = plt.subplots(figsize=(8,4))
+    x = sorted(data.keys())
+    y = [int(data[v]['kaikki']/2) for v in x]
+    ax.bar([("%s" % v)[2:] for v in x], y)
+    plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(y))
+    plt.savefig("tulokset/testattujen-lukumaarat.png")
+    plt.show()
 
-data = laskeVuosiKoosteet()
-fig, ax = plt.subplots(figsize=(8,4))
-x = sorted(data.keys())
-y = [int(data[v]['kaikki']/2) for v in x]
-print("### x", x)
-print("### y", y)
-ax.bar([("%s" % v)[2:] for v in x], y)
-plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(y))
-plt.savefig("tulokset/testattujen-lukumaarat.png")
-# plt.show()
-
-data = kumulatiivinenVuosiData(ikkuna)
-with open('tulokset/frekvenssit.txt', 'w') as f:
-    loppu = x[-1]
-    alku = loppu - ikkuna + 1
-    f.write('Vuosina %d - %d syntyneiden koirien (%d kpl) haplotyyppien frekvenssit prosentteina\n'
-            % (alku, loppu, int(data[loppu]['kaikki']/2)))
-    for haplo in HAPLOT:
-        f.write('Parta%s      %.1f\n' % (haplo, 100 * data[loppu][haplo] / data[loppu]['kaikki']))
+suhteellistenHaplotyyppienKuvaaja()
+testattujenLukumaarat()
