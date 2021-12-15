@@ -1,0 +1,8 @@
+Vuosina 2010-2021 testattujen koirien haplotyyppien frekvenssit
+Parta1:  38.82
+Parta2:  27.64
+Parta3:  8.07
+Parta4:  8.07
+Parta5:  5.28
+Parta6:  11.80
+Parta7:  0.31

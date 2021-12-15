@@ -41,18 +41,24 @@ def lisaaHaplot(vuosi_haplot, vuosi, haplot):
         vuosi_haplot[vuosi].append(h1)
         vuosi_haplot[vuosi].append(h2)
 
-def vuosiHaplot():
+def kanoninen(koira):
+    return re.sub(r'[^A-Za-z]', '', koira).lower()
+
+def vuosiHaplot(skipattavat=[]):
+    skipattavat_kanoniset = [kanoninen(x) for x in skipattavat]
     vuosi_haplot = {}
     with open('DLA-tyypatut-2021-01-15.csv', newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for koira, rekkari, haplot, isa, ema in reader:
-            print(rekkari, vuosi(rekkari), haplot, parsiHaplot(haplot))
-            lisaaHaplot(vuosi_haplot, vuosi(rekkari), parsiHaplot(haplot))
+            if kanoninen(koira) in skipattavat_kanoniset:
+                print('Skipattu %s' % koira)
+            else:
+                print(rekkari, vuosi(rekkari), haplot, parsiHaplot(haplot))
+                lisaaHaplot(vuosi_haplot, vuosi(rekkari), parsiHaplot(haplot))
     return vuosi_haplot
 
-def laskeVuosiKoosteet():
+def laskeVuosiKoosteet(vuosi_haplot):
     kooste = {}
-    vuosi_haplot = vuosiHaplot()
     for vuosi in vuosi_haplot.keys():
         frekvenssit = {}
         kooste[vuosi] = frekvenssit
@@ -71,9 +77,9 @@ def vuodetFrekvenssit(data, haplo):
         frekvenssit.append(100*data[vuosi][haplo] / data[vuosi]['kaikki'])
     return (vuodet, frekvenssit)
 
-def kumulatiivinenVuosiData(ikkuna):
+def kumulatiivinenVuosiData(ikkuna, skipattavat=[]):
     kumulatiivinen = {}
-    vuosi_data = laskeVuosiKoosteet()
+    vuosi_data = laskeVuosiKoosteet(vuosiHaplot(skipattavat=skipattavat))
     datan_alku = sorted(vuosi_data.keys())[0]
     alkuvuosi = sorted(vuosi_data.keys())[0] + ikkuna - 1
     loppuvuosi = sorted(vuosi_data.keys())[-1] + 1
@@ -82,13 +88,17 @@ def kumulatiivinenVuosiData(ikkuna):
             kumulatiivinen[vuosi] = {}
             kumulatiivinen[vuosi]['kaikki'] = 0
             for v in range(vuosi-ikkuna+1, vuosi+1):
-                print("## v", v, vuosi_data[v])
+                if v in vuosi_data:
+                    print("## v", v, vuosi_data[v])
+                else:
+                    print("## v", v)
             for haplo in HAPLOT:
                 kumulatiivinen[vuosi][haplo] = 0
                 for v in range(vuosi-ikkuna+1, vuosi+1):
+                    n = vuosi_data[v][haplo] if v in vuosi_data else 0
                     #print("### v, h", v, haplo)
-                    kumulatiivinen[vuosi][haplo] = kumulatiivinen[vuosi][haplo] + vuosi_data[v][haplo]
-                    kumulatiivinen[vuosi]['kaikki'] = kumulatiivinen[vuosi]['kaikki'] + vuosi_data[v][haplo]
+                    kumulatiivinen[vuosi][haplo] = kumulatiivinen[vuosi][haplo] + n
+                    kumulatiivinen[vuosi]['kaikki'] = kumulatiivinen[vuosi]['kaikki'] + n
             print("#### kum", vuosi, kumulatiivinen[vuosi])
     return kumulatiivinen
 
@@ -106,7 +116,7 @@ def suhteellistenHaplotyyppienKuvaaja():
     plt.show()
 
 def testattujenLukumaarat():
-    data = laskeVuosiKoosteet()
+    data = laskeVuosiKoosteet(vuosiHaplot())
     fig, ax = plt.subplots(figsize=(8,4))
     x = sorted(data.keys())
     y = [int(data[v]['kaikki']/2) for v in x]
@@ -115,5 +125,22 @@ def testattujenLukumaarat():
     plt.savefig("tulokset/testattujen-lukumaarat.png")
     plt.show()
 
+def uusienTestattujenFrekvenssit():
+    skipattavat = []
+    with open('testatut-2010.csv') as testatut:
+        for line in testatut:
+            skipattavat.append(line.strip())
+    haplot = vuosiHaplot(skipattavat=skipattavat)
+    koosteet = laskeVuosiKoosteet(haplot)
+    kumulatiivinen = kumulatiivinenVuosiData(20, skipattavat=skipattavat)
+    vuosi21 = kumulatiivinen[2021]
+    with open('tulokset/vuosina-2010-2021-testattujen-frekvenssit.txt', 'w') as f:
+        f.write('Vuosina 2010-2021 testattujen koirien haplotyyppien frekvenssit\n')
+        for haplo in HAPLOT:
+            f.write('Parta%s:  %.2f\n' %
+                    (haplo,
+                     100.0 * vuosi21[haplo] / vuosi21['kaikki']))
+
 suhteellistenHaplotyyppienKuvaaja()
 testattujenLukumaarat()
+uusienTestattujenFrekvenssit()
