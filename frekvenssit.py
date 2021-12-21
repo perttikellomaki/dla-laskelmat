@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 
+yksittaiset = 'yksittäiset'
+parit = 'parit'
+
 HAPLOT = ['1', '2', '3', '4', '5', '6', '7']
 
 def vuosiKahdestaDigitista(rekkari):
@@ -37,9 +40,9 @@ def lisaaHaplot(vuosi_haplot, vuosi, haplot):
     if haplot:
         h1, h2 = haplot
         if vuosi not in vuosi_haplot.keys():
-            vuosi_haplot[vuosi] = []
-        vuosi_haplot[vuosi].append(h1)
-        vuosi_haplot[vuosi].append(h2)
+            vuosi_haplot[vuosi] = {yksittaiset: [], parit: []}
+        vuosi_haplot[vuosi][yksittaiset].append(h1)
+        vuosi_haplot[vuosi][yksittaiset].append(h2)
 
 def kanoninen(koira):
     return re.sub(r'[^A-Za-z]', '', koira).lower()
@@ -64,7 +67,7 @@ def laskeVuosiKoosteet(vuosi_haplot):
         kooste[vuosi] = frekvenssit
         frekvenssit['kaikki'] = 0
         for haplo in HAPLOT:
-            n = vuosi_haplot[vuosi].count(haplo)
+            n = vuosi_haplot[vuosi][yksittaiset].count(haplo)
             frekvenssit[haplo] = n
             frekvenssit['kaikki'] = frekvenssit['kaikki'] + n
     return kooste
