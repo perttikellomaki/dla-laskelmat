@@ -185,8 +185,8 @@ def testattujenJaRekisteroityjenLukumaarat():
     plt.bar(r + width, testatut, width=width, label='testatut')
     plt.xticks(r + width/2, [("%s" % v if v % 5 == 0 else "") for v in x])
     plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(testatut))
-    plt.savefig("tulokset/testattujen-ja-rekisteroityjen-lukumaarat.png")
     plt.legend()
+    plt.savefig("tulokset/testattujen-ja-rekisteroityjen-lukumaarat.png")
     plt.show()
 
 def uusienTestattujenFrekvenssit():
