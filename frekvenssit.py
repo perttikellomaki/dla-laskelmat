@@ -10,8 +10,12 @@ import numpy as np
 
 yksittaiset = 'yksittäiset'
 parit = 'parit'
+kaikkihaplot = 'kaikkihaplot'
+kaikkiparit = 'kaikkiparit'
+homotsygootit = 'homotsygootit'
 
-HAPLOT = ['1', '2', '3', '4', '5', '6', '7']
+HAPLOT = [1, 2, 3, 4, 5, 6, 7]
+HAPLOPARIT = [(h1, h2) for h1 in HAPLOT for h2 in range(h1, HAPLOT[-1]+1)]
 
 def vuosiKahdestaDigitista(rekkari):
     m = re.match( '[A-Za-z]*[0-9]*/([0-9][0-9])', rekkari.replace(' ', ''))
@@ -34,7 +38,7 @@ def vuosi(rekkari):
 def parsiHaplot(haplot):
     m = re.match('[a-zA-Z]*([0-9])[:-][a-zA-Z]*([0-9])', haplot.replace(' ', ''))
     if m:
-        return (m.group(1), m.group(2))
+        return (int(m.group(1)), int(m.group(2)))
 
 def lisaaHaplot(vuosi_haplot, vuosi, haplot):
     if haplot:
@@ -43,6 +47,7 @@ def lisaaHaplot(vuosi_haplot, vuosi, haplot):
             vuosi_haplot[vuosi] = {yksittaiset: [], parit: []}
         vuosi_haplot[vuosi][yksittaiset].append(h1)
         vuosi_haplot[vuosi][yksittaiset].append(h2)
+        vuosi_haplot[vuosi][parit].append((min(h1, h2), max(h1, h2)))
 
 def kanoninen(koira):
     return re.sub(r'[^A-Za-z]', '', koira).lower()
@@ -65,19 +70,33 @@ def laskeVuosiKoosteet(vuosi_haplot):
     for vuosi in vuosi_haplot.keys():
         frekvenssit = {}
         kooste[vuosi] = frekvenssit
-        frekvenssit['kaikki'] = 0
+        frekvenssit[kaikkihaplot] = 0
+        frekvenssit[homotsygootit] = 0
         for haplo in HAPLOT:
             n = vuosi_haplot[vuosi][yksittaiset].count(haplo)
             frekvenssit[haplo] = n
-            frekvenssit['kaikki'] = frekvenssit['kaikki'] + n
+            frekvenssit[kaikkihaplot] = frekvenssit[kaikkihaplot] + n
+        for h1, h2 in HAPLOPARIT:
+            frekvenssit[(h1, h2)] = vuosi_haplot[vuosi][parit].count((h1, h2))
+            if h1 == h2:
+                n = vuosi_haplot[vuosi][parit].count((h1, h2))
+                frekvenssit[homotsygootit] = frekvenssit[homotsygootit] + n
     return kooste
 
-def vuodetFrekvenssit(data, haplo):
+def vuodetFrekvenssitHaplo(data, haplo):
     vuodet = []
     frekvenssit = []
     for vuosi in sorted(data.keys()):
         vuodet.append(vuosi)
-        frekvenssit.append(100*data[vuosi][haplo] / data[vuosi]['kaikki'])
+        frekvenssit.append(100*data[vuosi][haplo] / data[vuosi][kaikkihaplot])
+    return (vuodet, frekvenssit)
+
+def vuodetFrekvenssitPari(data, pari):
+    vuodet = []
+    frekvenssit = []
+    for vuosi in sorted(data.keys()):
+        vuodet.append(vuosi)
+        frekvenssit.append(100*data[vuosi][pari] / data[vuosi][kaikkiparit])
     return (vuodet, frekvenssit)
 
 def kumulatiivinenVuosiData(ikkuna, skipattavat=[]):
@@ -89,19 +108,23 @@ def kumulatiivinenVuosiData(ikkuna, skipattavat=[]):
     for vuosi in range(datan_alku, loppuvuosi):
         if vuosi >= alkuvuosi:
             kumulatiivinen[vuosi] = {}
-            kumulatiivinen[vuosi]['kaikki'] = 0
+            kumulatiivinen[vuosi][kaikkihaplot] = 0
+            kumulatiivinen[vuosi][kaikkiparit] = 0
             for v in range(vuosi-ikkuna+1, vuosi+1):
                 if v in vuosi_data:
                     print("## v", v, vuosi_data[v])
                 else:
                     print("## v", v)
-            for haplo in HAPLOT:
-                kumulatiivinen[vuosi][haplo] = 0
+            for alkio in HAPLOT + HAPLOPARIT + [homotsygootit]:
+                kumulatiivinen[vuosi][alkio] = 0
                 for v in range(vuosi-ikkuna+1, vuosi+1):
-                    n = vuosi_data[v][haplo] if v in vuosi_data else 0
-                    #print("### v, h", v, haplo)
-                    kumulatiivinen[vuosi][haplo] = kumulatiivinen[vuosi][haplo] + n
-                    kumulatiivinen[vuosi]['kaikki'] = kumulatiivinen[vuosi]['kaikki'] + n
+                    n = vuosi_data[v][alkio] if v in vuosi_data else 0
+                    #print("### v, h", v, alkio)
+                    kumulatiivinen[vuosi][alkio] = kumulatiivinen[vuosi][alkio] + n
+                    if alkio in HAPLOT:
+                        kumulatiivinen[vuosi][kaikkihaplot] = kumulatiivinen[vuosi][kaikkihaplot] + n
+                    elif alkio in HAPLOPARIT:
+                        kumulatiivinen[vuosi][kaikkiparit] = kumulatiivinen[vuosi][kaikkiparit] + n
             print("#### kum", vuosi, kumulatiivinen[vuosi])
     return kumulatiivinen
 
@@ -110,7 +133,7 @@ def suhteellistenHaplotyyppienKuvaaja():
     data = kumulatiivinenVuosiData(ikkuna)
     fig, ax = plt.subplots()
     for haplo in HAPLOT:
-        x, y = vuodetFrekvenssit(data, haplo)
+        x, y = vuodetFrekvenssitHaplo(data, haplo)
         ax.plot(x, y, label=haplo, linewidth=5)
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.legend()
@@ -118,11 +141,28 @@ def suhteellistenHaplotyyppienKuvaaja():
     plt.savefig("tulokset/%s-vuoden-ikkuna.png" % ikkuna)
     plt.show()
 
+def suhteellistenHomotsygoottienKuvaaja():
+    ikkuna = 10
+    data = kumulatiivinenVuosiData(ikkuna)
+    fig, ax = plt.subplots()
+    for pari in HAPLOPARIT:
+        h1, h2 = pari
+        if h1 == h2:
+            x, y = vuodetFrekvenssitPari(data, pari)
+            ax.plot(x, y, label=pari, linewidth=5)
+    x, y = vuodetFrekvenssitPari(data, homotsygootit)
+    ax.plot(x, y, label='kaikki', linewidth=5)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.legend()
+    plt.title("%s edellisenä vuonna syntyneiden kumulatiiviset homotsygoottimäärät (%%)" % ikkuna)
+    plt.savefig("tulokset/%s-vuoden-ikkuna-homotsygootit.png" % ikkuna)
+    plt.show()
+
 def testattujenLukumaarat():
     data = laskeVuosiKoosteet(vuosiHaplot())
     fig, ax = plt.subplots(figsize=(8,4))
     x = sorted(data.keys())
-    y = [int(data[v]['kaikki']/2) for v in x]
+    y = [int(data[v][kaikkihaplot]/2) for v in x]
     ax.bar([("%s" % v)[2:] for v in x], y)
     plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(y))
     plt.savefig("tulokset/testattujen-lukumaarat.png")
@@ -142,8 +182,9 @@ def uusienTestattujenFrekvenssit():
         for haplo in HAPLOT:
             f.write('Parta%s:  %.2f\n' %
                     (haplo,
-                     100.0 * vuosi21[haplo] / vuosi21['kaikki']))
+                     100.0 * vuosi21[haplo] / vuosi21[kaikkihaplot]))
 
 suhteellistenHaplotyyppienKuvaaja()
+suhteellistenHomotsygoottienKuvaaja()
 testattujenLukumaarat()
 uusienTestattujenFrekvenssit()
