@@ -168,6 +168,27 @@ def testattujenLukumaarat():
     plt.savefig("tulokset/testattujen-lukumaarat.png")
     plt.show()
 
+def testattujenJaRekisteroityjenLukumaarat():
+    width = 0.5
+    rekisteroinnit = {}
+    with open('rekisteroinnit.csv') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for vuosi,lukumaara in reader:
+            rekisteroinnit[int(vuosi)] = int(lukumaara)
+    data = laskeVuosiKoosteet(vuosiHaplot())
+    x = sorted(data.keys())
+    testatut = [int(data[v][kaikkihaplot]/2) for v in x]
+    rekisteroidyt = [rekisteroinnit[v] for v in x]
+    n = len(x)
+    r = np.arange(n)
+    plt.bar(r, rekisteroidyt, width=width, label='rekisteröidyt')
+    plt.bar(r + width, testatut, width=width, label='testatut')
+    plt.xticks(r + width/2, [("%s" % v if v % 5 == 0 else "") for v in x])
+    plt.title('Testatut koirat syntymävuosittain (yhteensä %d kpl)' % sum(testatut))
+    plt.savefig("tulokset/testattujen-ja-rekisteroityjen-lukumaarat.png")
+    plt.legend()
+    plt.show()
+
 def uusienTestattujenFrekvenssit():
     skipattavat = []
     with open('testatut-2010.csv') as testatut:
@@ -187,4 +208,5 @@ def uusienTestattujenFrekvenssit():
 suhteellistenHaplotyyppienKuvaaja()
 suhteellistenHomotsygoottienKuvaaja()
 testattujenLukumaarat()
+testattujenJaRekisteroityjenLukumaarat()
 uusienTestattujenFrekvenssit()
